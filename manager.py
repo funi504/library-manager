@@ -12,6 +12,9 @@ from docx import Document
 from sklearn.cluster import KMeans
 from sentence_transformers import SentenceTransformer
 from transformers import pipeline
+from utils import extract_pdf_pages_as_chunks
+from embedding import embedText
+from my_chroma_utils import addDocuments
 
 
 # Download necessary NLTK data
@@ -22,6 +25,7 @@ nltk.download('punkt_tab')
 # ============ CONFIG ============ #
 UNSORTED_DIR = r"c:\Users\FUNANANI NEKHUNGUNI\Desktop\test_docs"
 SORTED_DIR = r"c:\Users\FUNANANI NEKHUNGUNI\Desktop\smart_clusters"
+FILE_PATH = ""
 NUM_CLUSTERS = 10
 SAMPLE_DOCS_PER_CLUSTER = 3
 MAX_SUMMARY_LENGTH = 40  # for flan-t5-small
@@ -50,25 +54,57 @@ def extract_text(file_path):
 
 documents = []
 file_paths = []
+def embed_and_save_to_chroma(FILE_PATH):
+    print("📂 Reading file...")
+    document = []
+    file_path = []
+    # for fname in os.listdir(UNSORTED_DIR):
+    #     path = os.path.join(UNSORTED_DIR, fname)
+    if  os.path.isfile(FILE_PATH):
+    # return page numbers and page text
+        doc_chunk = extract_pdf_pages_as_chunks(FILE_PATH)
+        if doc_chunk:
+            document.append(doc_chunk)
+            file_path.append(FILE_PATH)
 
-print("📂 Reading files...")
+    print(f"📄 {len(document)} pages scanned loaded.")
+
+    # -------- Embed Text -------- #
+    print("📌 Embedding documents...")
+
+    chunks = [chunk for doc in document for chunk in doc]
+    print(f"📄 {len(chunks)} chunks  loaded.")
+    # embeddings = embedder.encode(documents)
+    # bundles the whole indexed page
+    document_indexed = embedText(chunks, FILE_PATH)
+
+    #save page and its indexes to chroa db
+    print("📌 saving document pages to chroma db...")
+    addDocuments(document_indexed)
+    # print(document_indexed)
+    return document_indexed
+
 for fname in os.listdir(UNSORTED_DIR):
     path = os.path.join(UNSORTED_DIR, fname)
     if not os.path.isfile(path):
         continue
-    text = extract_text(path).strip()
-    if text:
-        documents.append(text[:2000])  # Truncate to 2000 chars
-        file_paths.append(path)
+    # text = extract_text(path).strip()
+    try:
+        if path.endswith(".pdf"):
+            page_indexed = embed_and_save_to_chroma(path)[0]
+            if page_indexed:
+                documents.append(page_indexed)  # Truncate to 2000 chars
+                file_paths.append(path)
+    except Exception as e:
+        print(f"something went wrong , document not saved : {e}")
 
 print(f"📄 {len(documents)} documents loaded.")
 
 
 # -------- Embed Text -------- #
-print("📌 Embedding documents...")
-embeddings = embedder.encode(documents)
-
-
+print("📌 Loading Embedding documents...")
+# embeddings = embedder.encode(documents)
+embeddings = [doc["embedding"] for doc in documents]
 # -------- Cluster Embeddings -------- #
 print(f"🧠 Clustering into {NUM_CLUSTERS} groups...")
 kmeans = KMeans(n_clusters=NUM_CLUSTERS, random_state=42)
@@ -96,7 +132,7 @@ def extract_two_keywords(text):
     return "_".join(unique[:2]) if len(unique) >= 2 else "_".join(unique)
 
 for label, docs in cluster_docs.items():
-    sample_text = " ".join(docs[:SAMPLE_DOCS_PER_CLUSTER])
+    sample_text = " ".join(doc["text"] for doc in docs[:SAMPLE_DOCS_PER_CLUSTER])
     sample_text = sample_text[:1000]  # keep it shorter for flan-t5-small
     prompt = f"Summarize the following text:\n{sample_text}"
 

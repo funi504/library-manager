@@ -1,0 +1,53 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual environment
+.venv/
+env/
+ENV/
+venv/
+*.egg-info/
+
+# Environment variables
+.env
+.env.*
+
+# PDFs and data files
+*.pdf
+*.docx
+*.xlsx
+*.csv
+
+# System files
+.DS_Store
+Thumbs.db
+
+# Logs and debugging
+*.log
+
+# Jupyter Notebook checkpoints
+.ipynb_checkpoints/
+
+# VS Code settings
+.vscode/
+
+# PyCharm settings
+.idea/
+
+# Output folders
+output/
+dist/
+build/
+*.bak
+
+# Chroma DB or vector stores (if they’re file-based)
+chroma/
+chroma_db/
+
+# Temporary or test data
+tmp/
+temp/
+test_output/
+__temp__/

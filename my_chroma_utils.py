@@ -8,67 +8,97 @@ import chromadb
 from chromadb.config import Settings
 
 # Define port and path for Chroma DB
-CHROMA_PORT = "8000"
-CHROMA_PATH = "./chroma_db"
-CHROMA_HOST = "localhost"
+# CHROMA_PORT = "8000"
+# CHROMA_PATH = "./chroma_db"
+# CHROMA_HOST = "localhost"
 
-# Activate virtual environment check
-VENV_PYTHON = os.path.join(".", ".venv", "Scripts", "python.exe") if os.name == "nt" else os.path.join(".", ".venv", "bin", "python")
-if sys.executable != os.path.abspath(VENV_PYTHON):
-    print("⚠️ Please activate your virtual environment first:")
-    print("Windows: .\\.venv\\Scripts\\activate")
-    print("Unix/Mac: source .venv/bin/activate")
-    sys.exit(1)
+# # Activate virtual environment check
+# VENV_PYTHON = os.path.join(".", ".venv", "Scripts", "python.exe") if os.name == "nt" else os.path.join(".", ".venv", "bin", "python")
+# if sys.executable != os.path.abspath(VENV_PYTHON):
+#     print("⚠️ Please activate your virtual environment first:")
+#     print("Windows: .\\.venv\\Scripts\\activate")
+#     print("Unix/Mac: source .venv/bin/activate")
+#     sys.exit(1)
 
-# Start Chroma server in the background
-print(f"🚀 Starting ChromaDB server on port {CHROMA_PORT}...")
+# # Start Chroma server in the background
+# print(f"🚀 Starting ChromaDB server on port {CHROMA_PORT}...")
 
-server_process = subprocess.Popen(
-    ["chroma", "run", "--path", CHROMA_PATH, "--port", CHROMA_PORT],
-    stdout=subprocess.PIPE,
-    stderr=subprocess.PIPE
-)
+# server_process = subprocess.Popen(
+#     ["chroma", "run", "--path", CHROMA_PATH, "--port", CHROMA_PORT],
+#     stdout=subprocess.PIPE,
+#     stderr=subprocess.PIPE
+# )
 
 # Wait until server is reachable
-def wait_for_server(host, port, timeout=30):
-    url = f"http://{host}:{port}/api/v1/heartbeat"
-    for _ in range(timeout):
-        try:
-            r = requests.get(url)
-            if r.status_code == 200:
-                print("✅ ChromaDB server is up.")
-                return True
-        except Exception as e:
-            print(e)
-            pass
-        time.sleep(1)
-    print("❌ Failed to connect to ChromaDB server.")
+# def wait_for_server(host, port, timeout=30):
+#     url = f"http://{host}:{port}/api/v1/heartbeat"
+#     for _ in range(timeout):
+#         try:
+#             r = requests.get(url)
+#             if r.status_code == 200:
+#                 print("✅ ChromaDB server is up.")
+#                 return True
+#         except Exception as e:
+#             print(e)
+#             pass
+#         time.sleep(1)
+#     print("❌ Failed to connect to ChromaDB server.")
     
-    return False
+#     return False
 
 # if not wait_for_server(CHROMA_HOST, CHROMA_PORT):
 #     server_process.terminate()
 #     sys.exit(1)
 
-# Connect to Chroma HTTP client
-chroma_client = chromadb.HttpClient(host=CHROMA_HOST, port=int(CHROMA_PORT))
+CHROMA_PATH = "./chroma_db"
+
+chroma_client = chromadb.Client(Settings(
+    persist_directory=CHROMA_PATH
+))
 
 # Get or create the collection
 collection = chroma_client.get_or_create_collection(name="documents")
 
+
+def search_documents(query,embedder, top_k=1):
+    query_embedding = embedder.encode(query)
+    results = collection.query(
+    query_embeddings=[query_embedding],
+    n_results=top_k  # adjust how many results you want
+    )
+    # scores = cosine_similarity(query_embedding, embeddings)[0]
+    # top_indices = np.argsort(scores)[::-1][:top_k]
+    for i in range(len(results["documents"])):
+        print(f"Document: {results['documents'][i]}")
+        print(f"Metadata: {results['metadatas'][i]}")
+        print(f"Distance: {results['distances'][i]}")
+        print("---")
+    
+    return results
 # Add documents to ChromaDB
 def addDocuments(document_indexed):
+    id = str(uuid4())
     for doc in document_indexed:
-        collection.add(
-            documents=[doc["text"]],
-            metadatas=[{
-                "file_path": doc["path"],
-                "page_number": doc["page"],
-                "chunk": doc["chunk"]
-            }],
-            ids=[str(uuid4())],
-            embeddings=[doc["embedding"]]
-        )
+        try:
+            collection.add(
+                documents=[doc["text"]],
+                metadatas=[{
+                    "file_path": doc["path"],
+                    "page_number": doc["page"],
+                    "chunk": doc["chunk"]
+                }],
+                ids=[id],
+                embeddings=[doc["embedding"]]
+            )
+            
+            # print(f"document id : {id}")
+            # results = collection.get(ids=id)
+            # print(results["documents"])
+            # print(results["metadatas"])
+            
+        except Exception as e:
+            print(f"falide to save document to chroma : {e}")
+            
 
 # # Example usage
 # if __name__ == "__main__":

@@ -52,9 +52,7 @@ from chromadb.config import Settings
 
 CHROMA_PATH = "./chroma_db"
 
-chroma_client = chromadb.Client(Settings(
-    persist_directory=CHROMA_PATH
-))
+chroma_client = chromadb.PersistentClient()
 
 # Get or create the collection
 collection = chroma_client.get_or_create_collection(name="documents")

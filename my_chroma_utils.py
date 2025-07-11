@@ -58,7 +58,7 @@ chroma_client = chromadb.PersistentClient()
 collection = chroma_client.get_or_create_collection(name="documents")
 
 
-def search_documents(query,embedder, top_k=1):
+def search_documents(query,embedder, top_k=5):
     query_embedding = embedder.encode(query)
     results = collection.query(
     query_embeddings=[query_embedding],
@@ -66,12 +66,12 @@ def search_documents(query,embedder, top_k=1):
     )
     # scores = cosine_similarity(query_embedding, embeddings)[0]
     # top_indices = np.argsort(scores)[::-1][:top_k]
-    for i in range(len(results["documents"])):
-        print(f"Document: {results['documents'][i]}")
-        print(f"Metadata: {results['metadatas'][i]}")
-        print(f"Distance: {results['distances'][i]}")
-        print("---")
-    
+    # for i in range(len(results["documents"])):
+    #     print(f"Document: {results['documents'][i]}")
+    #     print(f"Metadata: {results['metadatas'][i]}")
+    #     print(f"Distance: {results['distances'][i]}")
+    #     print("---")
+    print(results)
     return results
 # Add documents to ChromaDB
 def addDocuments(document_indexed):

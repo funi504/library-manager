@@ -23,8 +23,8 @@ nltk.download("stopwords")
 nltk.download('punkt_tab')
 
 # ============ CONFIG ============ #
-UNSORTED_DIR = r"c:\Users\FUNANANI NEKHUNGUNI\Desktop\test_docs"
-SORTED_DIR = r"c:\Users\FUNANANI NEKHUNGUNI\Desktop\smart_clusters"
+# UNSORTED_DIR = r"c:\Users\FUNANANI NEKHUNGUNI\Desktop\test_docs"
+# SORTED_DIR = r"c:\Users\FUNANANI NEKHUNGUNI\Desktop\smart_clusters"
 FILE_PATH = ""
 NUM_CLUSTERS = 10
 SAMPLE_DOCS_PER_CLUSTER = 3
@@ -84,8 +84,24 @@ def embed_and_save_to_chroma(FILE_PATH):
     # print(document_indexed)
     return document_indexed
 
+def scan_and_save_files_to_chroma(TARGET_DIR):
+    for fname in os.listdir(TARGET_DIR):
+        path = os.path.join(TARGET_DIR, fname)
+        if not os.path.isfile(path):
+            continue
+        # text = extract_text(path).strip()
+        try:
+            if path.endswith(".pdf"):
+                page_indexed = embed_and_save_to_chroma(path)[0]
+                if page_indexed:
+                    documents.append(page_indexed)  # Truncate to 2000 chars
+                    file_paths.append(path)
+        except Exception as e:
+            print(f"something went wrong , document not saved : {e}")
 
-def organize_files():
+    print(f"📄 {len(documents)} documents loaded.")
+
+def organize_files(UNSORTED_DIR , SORTED_DIR):
     for fname in os.listdir(UNSORTED_DIR):
         path = os.path.join(UNSORTED_DIR, fname)
         if not os.path.isfile(path):

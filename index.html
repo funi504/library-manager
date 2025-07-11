@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Smart Document Sorter</title>
+  <style>
+    body { font-family: sans-serif; padding: 2rem; }
+    button, input[type="text"] {
+      padding: 0.6rem 1rem;
+      font-size: 1rem;
+      margin-right: 1rem;
+    }
+    #status {
+      margin-top: 1rem;
+      color: green;
+    }
+    #results {
+      margin-top: 1rem;
+    }
+    .result {
+      margin-bottom: 1rem;
+      padding: 0.5rem;
+      background: #f0f0f0;
+    }
+  </style>
+</head>
+<body>
+
+  <h2>📂 Smart Document Sorter</h2>
+  <button onclick="chooseFolder()">🗂 Select Folder</button>
+  <div id="status"></div>
+
+  <h3>🔍 Search Your Documents</h3>
+  <input type="text" id="searchInput" placeholder="Enter your query..." />
+  <button onclick="search()">Search</button>
+
+  <div id="results"></div>
+
+ <script>
+  function search() {
+    const query = document.getElementById("searchInput").value;
+    if (!query) return;
+
+    document.getElementById("results").innerHTML = "🔄 Searching...";
+    pywebview.api.search_for_documents(query).then(results => {
+      const container = document.getElementById("results");
+      container.innerHTML = "";
+
+      if (!results || results.length === 0) {
+        container.innerHTML = "❌ No results found.";
+        return;
+      }
+
+      results.forEach(res => {
+        const div = document.createElement("div");
+        div.className = "result";
+
+        const fileName = res.file_path.split('\\').pop();
+        div.innerHTML = `
+          <strong>📄 ${res.file_path}</strong><br/>
+          <small>📍 Page: ${res.page_number} | 🔍 Score: ${res.score}</small>
+          <p>${res.text}</p>
+        `;
+
+        container.appendChild(div);
+      });
+    });
+  }
+</script>
+
+
+
+</body>
+</html>

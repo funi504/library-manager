@@ -1,5 +1,5 @@
 import tkinter as tk
-from tkinter import ttk, scrolledtext, messagebox
+from tkinter import ttk, scrolledtext, messagebox,filedialog
 import threading
 import queue
 import time
@@ -7,18 +7,22 @@ from datetime import datetime
 
 # Mock functions for demo (replace with your actual imports)
 try:
-    from manager import organize_files, embedder
+    from manager import organize_files, embedder, scan_and_save_files_to_chroma
     from my_chroma_utils import search_documents
 except ImportError:
-    def organize_files():
+    def organize_files(unsorted_dir, sorted_dir):
         time.sleep(2)
-        return "Files organized successfully!"
+        return f"Files organized from {unsorted_dir} to {sorted_dir} successfully!"
+    
+    def scan_and_save_files_to_chroma(target_dir):
+        time.sleep(3)
+        return f"Documents in {target_dir} scanned and saved to ChromaDB!"
     
     def search_documents(query, embedder=None):
         time.sleep(1)
         return {
-            'documents': [['Sample document content about ' + query + '. This demonstrates how your AI-powered search finds relevant content across all your organized documents with semantic understanding. The AI can understand context and meaning, not just keyword matching, making it much more powerful than traditional search methods.']],
-            'metadatas': [[{'file_path': 'sample_document.pdf', 'page_number': 1, 'chunk_index': 0, 'title': 'Sample Document Title'}]],
+            'documents': [['Something went wrong, document content about ' + query + ' was not found. Please try a scan for these documents']],
+            'metadatas': [[{'file_path': '', 'page_number': 1, 'chunk_index': 0, 'title': 'Something went wrong'}]],
             'distances': [[0.8]]
         }
     
@@ -56,7 +60,9 @@ class BeautifulDocumentMVP:
         
         # Search history
         self.search_history = []
-        
+        self.unsorted_dir = ""
+        self.sorted_dir = ""
+        self.scan_target_dir = ""
         self.setup_styles()
         self.create_main_layout()
         self.show_home_screen()
@@ -261,6 +267,67 @@ class BeautifulDocumentMVP:
                        bg=self.colors['bg_primary'], fg=self.colors['text_secondary'])
         desc.pack(pady=(10, 0))
         
+        # Directory selection panel
+        dir_panel = tk.Frame(organize_container, bg=self.colors['bg_card'], relief='raised', bd=1)
+        dir_panel.pack(fill=tk.X, pady=(0, 20))
+        
+        dir_content = tk.Frame(dir_panel, bg=self.colors['bg_card'])
+        dir_content.pack(fill=tk.X, padx=40, pady=30)
+        
+        # Directory selection title
+        dir_title = tk.Label(dir_content, text="📂 Select Directories", 
+                            font=('Segoe UI', 16, 'bold'),
+                            bg=self.colors['bg_card'], fg=self.colors['text_primary'])
+        dir_title.pack(pady=(0, 20))
+        
+        # Unsorted directory
+        unsorted_frame = tk.Frame(dir_content, bg=self.colors['bg_card'])
+        unsorted_frame.pack(fill=tk.X, pady=(0, 15))
+        
+        unsorted_label = tk.Label(unsorted_frame, text="📥 Unsorted Documents Directory:", 
+                                 font=('Segoe UI', 12, 'bold'),
+                                 bg=self.colors['bg_card'], fg=self.colors['text_primary'])
+        unsorted_label.pack(anchor='w')
+        
+        unsorted_path_frame = tk.Frame(unsorted_frame, bg=self.colors['bg_card'])
+        unsorted_path_frame.pack(fill=tk.X, pady=(5, 0))
+        
+        self.unsorted_path_label = tk.Label(unsorted_path_frame, 
+                                           text="No directory selected" if not self.unsorted_dir else self.unsorted_dir,
+                                           font=('Segoe UI', 10),
+                                           bg=self.colors['bg_input'], fg=self.colors['text_secondary'],
+                                           anchor='w', padx=10, pady=8, relief='flat')
+        self.unsorted_path_label.pack(side=tk.LEFT, fill=tk.X, expand=True)
+        
+        unsorted_browse_btn = ttk.Button(unsorted_path_frame, text="Browse", 
+                                        style='Small.TButton',
+                                        command=self.browse_unsorted_dir)
+        unsorted_browse_btn.pack(side=tk.RIGHT, padx=(10, 0))
+        
+        # Sorted directory
+        sorted_frame = tk.Frame(dir_content, bg=self.colors['bg_card'])
+        sorted_frame.pack(fill=tk.X, pady=(0, 20))
+        
+        sorted_label = tk.Label(sorted_frame, text="📤 Sorted Documents Directory:", 
+                               font=('Segoe UI', 12, 'bold'),
+                               bg=self.colors['bg_card'], fg=self.colors['text_primary'])
+        sorted_label.pack(anchor='w')
+        
+        sorted_path_frame = tk.Frame(sorted_frame, bg=self.colors['bg_card'])
+        sorted_path_frame.pack(fill=tk.X, pady=(5, 0))
+        
+        self.sorted_path_label = tk.Label(sorted_path_frame, 
+                                         text="No directory selected" if not self.sorted_dir else self.sorted_dir,
+                                         font=('Segoe UI', 10),
+                                         bg=self.colors['bg_input'], fg=self.colors['text_secondary'],
+                                         anchor='w', padx=10, pady=8, relief='flat')
+        self.sorted_path_label.pack(side=tk.LEFT, fill=tk.X, expand=True)
+        
+        sorted_browse_btn = ttk.Button(sorted_path_frame, text="Browse", 
+                                      style='Small.TButton',
+                                      command=self.browse_sorted_dir)
+        sorted_browse_btn.pack(side=tk.RIGHT, padx=(10, 0))
+        
         # Control panel
         control_panel = tk.Frame(organize_container, bg=self.colors['bg_card'], relief='raised', bd=1)
         control_panel.pack(fill=tk.X, pady=(0, 20))
@@ -278,7 +345,7 @@ class BeautifulDocumentMVP:
         progress_frame = tk.Frame(control_content, bg=self.colors['bg_card'])
         progress_frame.pack(fill=tk.X, pady=(20, 0))
         
-        self.org_progress_label = tk.Label(progress_frame, text="Ready to organize documents", 
+        self.org_progress_label = tk.Label(progress_frame, text="Select directories to start organization", 
                                           font=('Segoe UI', 11),
                                           bg=self.colors['bg_card'], fg=self.colors['text_secondary'])
         self.org_progress_label.pack()
@@ -312,8 +379,32 @@ class BeautifulDocumentMVP:
         self.org_log.pack(fill=tk.BOTH, expand=True)
         
         # Initial log message
-        self.add_org_log("System ready. Click 'Start Organization' to begin processing documents.")
+        self.add_org_log("System ready. Select directories and click 'Start Organization' to begin.")
+
+    def browse_unsorted_dir(self):
+        """Browse for unsorted directory"""
+        directory = filedialog.askdirectory(title="Select Unsorted Documents Directory")
+        if directory:
+            self.unsorted_dir = directory
+            self.unsorted_path_label.config(text=directory)
+            self.check_organize_ready()
     
+    def browse_sorted_dir(self):
+        """Browse for sorted directory"""
+        directory = filedialog.askdirectory(title="Select Sorted Documents Directory")
+        if directory:
+            self.sorted_dir = directory
+            self.sorted_path_label.config(text=directory)
+            self.check_organize_ready()
+    
+    def check_organize_ready(self):
+        """Check if organization can start"""
+        if self.unsorted_dir and self.sorted_dir:
+            self.org_progress_label.config(text="Ready to organize documents")
+            self.start_org_btn.config(state='normal')
+        else:
+            self.start_org_btn.config(state='disabled')
+
     def show_search_screen(self):
         """Show the enhanced document search screen"""
         self.current_screen = "search"
@@ -404,6 +495,74 @@ class BeautifulDocumentMVP:
                              font=('Segoe UI', 9),
                              bg=self.colors['bg_card'], fg=self.colors['text_muted'])
         tips_label.pack(anchor='w')
+        
+        scan_section = tk.Frame(left_panel, bg=self.colors['bg_card'], relief='raised', bd=1)
+        scan_section.pack(fill=tk.X, pady=(0, 20))
+        
+        scan_header = tk.Frame(scan_section, bg=self.colors['bg_card'])
+        scan_header.pack(fill=tk.X, padx=25, pady=(25, 15))
+        
+        scan_title = tk.Label(scan_header, text="🔄 Document Scanning", 
+                             font=('Segoe UI', 16, 'bold'),
+                             bg=self.colors['bg_card'], fg=self.colors['text_primary'])
+        scan_title.pack(anchor='w')
+        
+        scan_subtitle = tk.Label(scan_header, text="Index documents for search", 
+                                font=('Segoe UI', 10),
+                                bg=self.colors['bg_card'], fg=self.colors['text_muted'])
+        scan_subtitle.pack(anchor='w', pady=(2, 0))
+        
+                # Scan documents section
+        scan_section = tk.Frame(left_panel, bg=self.colors['bg_card'], relief='raised', bd=1)
+        scan_section.pack(fill=tk.X, pady=(0, 20))
+        
+        scan_header = tk.Frame(scan_section, bg=self.colors['bg_card'])
+        scan_header.pack(fill=tk.X, padx=25, pady=(25, 15))
+        
+        scan_title = tk.Label(scan_header, text="🔄 Document Scanning", 
+                             font=('Segoe UI', 16, 'bold'),
+                             bg=self.colors['bg_card'], fg=self.colors['text_primary'])
+        scan_title.pack(anchor='w')
+        
+        scan_subtitle = tk.Label(scan_header, text="Index documents for search", 
+                                font=('Segoe UI', 10),
+                                bg=self.colors['bg_card'], fg=self.colors['text_muted'])
+        scan_subtitle.pack(anchor='w', pady=(2, 0))
+        
+        # Scan directory selection
+        scan_dir_frame = tk.Frame(scan_section, bg=self.colors['bg_card'])
+        scan_dir_frame.pack(fill=tk.X, padx=25, pady=(0, 15))
+        
+        scan_path_container = tk.Frame(scan_dir_frame, bg=self.colors['bg_card'])
+        scan_path_container.pack(fill=tk.X, pady=(0, 10))
+        
+        self.scan_path_label = tk.Label(scan_path_container, 
+                                       text="No directory selected" if not self.scan_target_dir else self.scan_target_dir,
+                                       font=('Segoe UI', 10),
+                                       bg=self.colors['bg_input'], fg=self.colors['text_secondary'],
+                                       anchor='w', padx=10, pady=6, relief='flat')
+        self.scan_path_label.pack(side=tk.LEFT, fill=tk.X, expand=True)
+        
+        scan_browse_btn = ttk.Button(scan_path_container, text="Browse", 
+                                    style='Small.TButton',
+                                    command=self.browse_scan_dir)
+        scan_browse_btn.pack(side=tk.RIGHT, padx=(10, 0))
+        
+        # Scan controls
+        scan_controls_frame = tk.Frame(scan_dir_frame, bg=self.colors['bg_card'])
+        scan_controls_frame.pack(fill=tk.X)
+        
+        self.start_scan_btn = ttk.Button(scan_controls_frame, text="🔄 Scan Documents", 
+                                        style='Accent.TButton',
+                                        command=self.start_scan,
+                                        state='disabled')
+        self.start_scan_btn.pack(side=tk.LEFT)
+        
+        # Scan progress
+        self.scan_progress_label = tk.Label(scan_controls_frame, text="Select directory to scan", 
+                                           font=('Segoe UI', 9),
+                                           bg=self.colors['bg_card'], fg=self.colors['text_muted'])
+        self.scan_progress_label.pack(side=tk.LEFT, padx=(15, 0))
         
         # Search history section
         history_section = tk.Frame(left_panel, bg=self.colors['bg_card'], relief='raised', bd=1)
@@ -545,6 +704,40 @@ class BeautifulDocumentMVP:
                 query_label.bind("<Enter>", on_enter)
                 query_label.bind("<Leave>", on_leave)
     
+    def browse_scan_dir(self):
+        """Browse for scan target directory"""
+        directory = filedialog.askdirectory(title="Select Directory to Scan for Documents")
+        if directory:
+            self.scan_target_dir = directory
+            self.scan_path_label.config(text=directory)
+            self.start_scan_btn.config(state='normal')
+            self.scan_progress_label.config(text="Ready to scan")
+    
+    def start_scan(self):
+        """Start document scanning"""
+        if not self.scan_target_dir:
+            messagebox.showwarning("Missing Directory", 
+                                 "Please select a directory to scan.")
+            return
+        
+        self.start_scan_btn.config(state='disabled', text="🔄 Scanning...")
+        self.scan_progress_label.config(text="Scanning documents...")
+        self.status_label.config(text="Scanning documents for search...")
+        
+        # Start background thread
+        thread = threading.Thread(target=self.scan_worker)
+        thread.daemon = True
+        thread.start()
+    
+    def scan_worker(self):
+        """Background worker for document scanning"""
+        try:
+            scan_and_save_files_to_chroma(self.scan_target_dir)
+            self.message_queue.put(("scan_done", "success"))
+            
+        except Exception as e:
+            self.message_queue.put(("scan_done", f"error: {str(e)}"))
+
     def use_history_query(self, query):
         """Use a query from search history"""
         self.search_entry.delete("1.0", tk.END)
@@ -585,6 +778,11 @@ class BeautifulDocumentMVP:
     
     def start_organization(self):
         """Start file organization"""
+        if not self.unsorted_dir or not self.sorted_dir:
+            messagebox.showwarning("Missing Directories", 
+                                 "Please select both unsorted and sorted directories.")
+            return
+        
         self.start_org_btn.config(state='disabled', text="🔄 Processing...")
         self.org_progress.start()
         self.org_progress_label.config(text="Organizing documents...")
@@ -593,6 +791,8 @@ class BeautifulDocumentMVP:
         # Clear log
         self.org_log.delete(1.0, tk.END)
         self.add_org_log("🚀 Starting document organization process...")
+        self.add_org_log(f"📥 Unsorted directory: {self.unsorted_dir}")
+        self.add_org_log(f"📤 Sorted directory: {self.sorted_dir}")
         
         # Start background thread
         thread = threading.Thread(target=self.organize_worker)
@@ -606,7 +806,7 @@ class BeautifulDocumentMVP:
             self.message_queue.put(("org_log", "🤖 Loading AI embeddings..."))
             self.message_queue.put(("org_log", "🔄 Processing document clusters..."))
             
-            result = organize_files()
+            result = organize_files(self.unsorted_dir, self.sorted_dir)
             
             self.message_queue.put(("org_log", "✅ Document organization completed successfully!"))
             self.message_queue.put(("org_done", "success"))
@@ -993,6 +1193,17 @@ class BeautifulDocumentMVP:
                         self.start_search_btn.config(state='normal', text="🔎 Search Documents")
                         self.show_error_message(data)
                         self.status_label.config(text="Search failed")
+                        
+                elif msg_type == "scan_done":
+                    if hasattr(self, 'start_scan_btn'):
+                        self.start_scan_btn.config(state='normal', text="🔄 Scan Documents")
+                        if data == "success":
+                            self.scan_progress_label.config(text="✅ Scan completed!")
+                            self.status_label.config(text="Documents scanned successfully")
+                        else:
+                            error_msg = data.replace("error: ", "")
+                            self.scan_progress_label.config(text="❌ Scan failed")
+                            self.status_label.config(text=f"Scan failed: {error_msg}")
                 
         except queue.Empty:
             pass

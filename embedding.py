@@ -14,7 +14,7 @@ def split_text_into_chunks(text, max_words=300):
 def embedText(chunks , path):
     divided_texts = []
     metadata = []
-
+    
     for chunk in chunks:
         page_num = chunk["page_number"]
         text = chunk["text"]
@@ -38,7 +38,7 @@ def embedText(chunks , path):
             "chunk": metadata[i]["chunk_number"],
             "embedding": embeddings[i],
             "text": divided_texts[i],
-            "path":path
+            "path":path.replace("\\", "/")
         }
         for i in range(len(embeddings))
     ]

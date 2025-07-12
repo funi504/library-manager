@@ -9,17 +9,16 @@
       font-size: 1rem;
       margin-right: 1rem;
     }
-    #status {
-      margin-top: 1rem;
-      color: green;
-    }
-    #results {
-      margin-top: 1rem;
-    }
-    .result {
+    #status { margin-top: 1rem; color: green; }
+    #results, #history { margin-top: 2rem; }
+    .result, .history-entry {
       margin-bottom: 1rem;
       padding: 0.5rem;
       background: #f0f0f0;
+    }
+    .file-path {
+      font-size: 0.9rem;
+      color: #555;
     }
   </style>
 </head>
@@ -27,6 +26,7 @@
 
   <h2>📂 Smart Document Sorter</h2>
   <button onclick="chooseFolder()">🗂 Select Folder</button>
+  <button onclick="loadHistory()">🕘 View History</button>
   <div id="status"></div>
 
   <h3>🔍 Search Your Documents</h3>
@@ -35,39 +35,79 @@
 
   <div id="results"></div>
 
- <script>
-  function search() {
-    const query = document.getElementById("searchInput").value;
-    if (!query) return;
+  <h3>📚 Scan History</h3>
+  <div id="history"></div>
 
-    document.getElementById("results").innerHTML = "🔄 Searching...";
-    pywebview.api.search_for_documents(query).then(results => {
-      const container = document.getElementById("results");
-      container.innerHTML = "";
-
-      if (!results || results.length === 0) {
-        container.innerHTML = "❌ No results found.";
-        return;
-      }
-
-      results.forEach(res => {
-        const div = document.createElement("div");
-        div.className = "result";
-
-        const fileName = res.file_path.split('\\').pop();
-        div.innerHTML = `
-          <strong>📄 ${res.file_path}</strong><br/>
-          <small>📍 Page: ${res.page_number} | 🔍 Score: ${res.score}</small>
-          <p>${res.text}</p>
-        `;
-
-        container.appendChild(div);
+  <script>
+    function chooseFolder() {
+      document.getElementById("status").textContent = "🔄 Scanning...";
+      pywebview.api.choose_directory().then(response => {
+        document.getElementById("status").textContent = response;
+        loadHistory(); // reload history after scanning
       });
-    });
-  }
-</script>
+    }
+    function openFile(path) {
+      pywebview.api.open_file(path);
+    }
+    
+    function search() {
+      const query = document.getElementById("searchInput").value;
+      if (!query) return;
 
+      document.getElementById("results").innerHTML = "🔄 Searching...";
+      pywebview.api.search_for_documents(query).then(results => {
+        const container = document.getElementById("results");
+        container.innerHTML = "";
 
+        if (!results || results.length === 0) {
+          container.innerHTML = "❌ No results found.";
+          return;
+        }
+
+        results.forEach(res => {
+          const div = document.createElement("div");
+          div.className = "result";
+
+          div.innerHTML = `
+            <strong>📄 <a href="#" onclick="openFile('${res.file_path}')">${res.file_path}</a></strong><br/>
+            <small>📍 Page: ${res.page_number} | 🔍 Score: ${res.score}</small>
+            <p>${res.text}</p>
+          `;
+
+          container.appendChild(div);
+        });
+      });
+    }
+
+    function loadHistory() {
+      const historyDiv = document.getElementById("history");
+      historyDiv.innerHTML = "🔄 Loading history...";
+      pywebview.api.get_history().then(entries => {
+        if (!entries || entries.length === 0) {
+          historyDiv.innerHTML = "📭 No scan history yet.";
+          return;
+        }
+
+        historyDiv.innerHTML = "";
+        entries.forEach(entry => {
+          const div = document.createElement("div");
+          div.className = "history-entry";
+          div.innerHTML = `
+            <strong>📁 ${entry.folder}</strong><br/>
+            <small>🕒 Scanned at: ${new Date(entry.timestamp).toLocaleString()}</small>
+            <ul>
+              ${entry.files.map(file => `<li class="file-path">📄 ${file}</li>`).join("")}
+            </ul>
+          `;
+          historyDiv.appendChild(div);
+        });
+      });
+    }
+
+    // Auto-load history on startup
+    window.onload = loadHistory;
+  </script>
 
 </body>
 </html>
+

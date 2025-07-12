@@ -20,3 +20,6 @@
 #     persist_directory=CHROMA_PATH
 # ))
 # If you don’t do this, ChromaDB will store everything in memory, and all your data will be lost when the app closes.
+
+
+#track document changes

@@ -85,6 +85,9 @@ def embed_and_save_to_chroma(FILE_PATH):
     return document_indexed
 
 def scan_and_save_files_to_chroma(TARGET_DIR):
+    
+    scanned_files = []
+    
     for fname in os.listdir(TARGET_DIR):
         path = os.path.join(TARGET_DIR, fname)
         if not os.path.isfile(path):
@@ -92,6 +95,7 @@ def scan_and_save_files_to_chroma(TARGET_DIR):
         # text = extract_text(path).strip()
         try:
             if path.endswith(".pdf"):
+                scanned_files.append(f'{TARGET_DIR}/{fname}')
                 page_indexed = embed_and_save_to_chroma(path)[0]
                 if page_indexed:
                     documents.append(page_indexed)  # Truncate to 2000 chars
@@ -100,6 +104,7 @@ def scan_and_save_files_to_chroma(TARGET_DIR):
             print(f"something went wrong , document not saved : {e}")
 
     print(f"📄 {len(documents)} documents loaded.")
+    return scanned_files
 
 def organize_files(UNSORTED_DIR , SORTED_DIR):
     for fname in os.listdir(UNSORTED_DIR):

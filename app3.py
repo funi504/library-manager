@@ -4,7 +4,7 @@ import platform
 from tkinter import filedialog, Tk
 from history_manager import init_db, add_to_history, get_history
 from manager import organize_files, embedder, scan_and_save_files_to_chroma
-from my_chroma_utils import search_documents
+from my_chroma_utils import search_documents,collection
 
 init_db()
 
@@ -45,7 +45,8 @@ class Api:
                 "page_number": meta.get("page_number", "N/A"),
                 "score": round(score, 4)
             })
-
+            
+        formatted.sort(key=lambda x: x["score"], reverse=True)
         return formatted
 
     def get_history(self):

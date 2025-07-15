@@ -67,7 +67,7 @@ def embed_and_save_to_chroma(FILE_PATH):
             document.append(doc_chunk)
             file_path.append(FILE_PATH)
 
-    print(f"📄 {len(document)} pages scanned loaded.")
+    print(f"📄 {len(document[0])} pages scanned loaded.")
 
     # -------- Embed Text -------- #
     print("📌 Embedding documents...")

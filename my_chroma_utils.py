@@ -75,8 +75,10 @@ def search_documents(query,embedder, top_k=5):
     return results
 # Add documents to ChromaDB
 def addDocuments(document_indexed):
-    id = str(uuid4())
+    print(f"{len(document_indexed)} to be added to chroma")
+    
     for doc in document_indexed:
+        id = str(uuid4())
         try:
             collection.add(
                 documents=[doc["text"]],
@@ -93,9 +95,9 @@ def addDocuments(document_indexed):
             # results = collection.get(ids=id)
             # print(results["documents"])
             # print(results["metadatas"])
-            
         except Exception as e:
             print(f"falide to save document to chroma : {e}")
+    
             
 
 # # Example usage

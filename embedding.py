@@ -30,7 +30,7 @@ def embedText(chunks , path):
 
     # Embed all 300-word sub-chunks
     embeddings = embedder.encode(divided_texts)
-
+    print(f"{len(embeddings)} embedding lenths")
     # Bundle everything together
     page_indexed_embeddings = [
         {
@@ -43,5 +43,6 @@ def embedText(chunks , path):
         for i in range(len(embeddings))
     ]
 
+    print(f"{len(page_indexed_embeddings)} pages indexed")
     return page_indexed_embeddings
 

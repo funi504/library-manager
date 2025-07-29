@@ -1,4 +1,4 @@
-# 🧠 AI-Powered Desktop Assistant
+# 🧠 AI-Powered Desktop Assistant (for more AI assistant app - https://github.com/funi504/chatbot/blob/master/llm.py)
 
 This project is a **local-first AI desktop assistant** built with Python. It combines an intuitive GUI powered by **PyWebView** with advanced AI models (from Hugging Face and SentenceTransformers) to enable **natural language understanding**, **semantic search**, and **memory recall** — all without needing to send your data to the cloud.
 

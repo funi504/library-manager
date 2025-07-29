@@ -100,17 +100,3 @@ def addDocuments(document_indexed):
     
             
 
-# # Example usage
-# if __name__ == "__main__":
-#     # Sample doc to test
-#     documents = [
-#         {
-#             "text": "Hello Chroma!",
-#             "path": "sample.txt",
-#             "page": 1,
-#             "chunk": 0,
-#             "embedding": [0.1] * 1536  # must match your embedding size
-#         }
-#     ]
-#     addDocuments(documents)
-#     print("✅ Documents added to ChromaDB.")

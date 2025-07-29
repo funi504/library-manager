@@ -1,113 +1,524 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-  <title>Smart Document Sorter</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Smart Document Search</title>
   <style>
-    body { font-family: sans-serif; padding: 2rem; }
-    button, input[type="text"] {
-      padding: 0.6rem 1rem;
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      color: #333;
+      line-height: 1.6;
+    }
+
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 2rem;
+    }
+
+    .header {
+      background: rgba(255, 255, 255, 0.95);
+      backdrop-filter: blur(10px);
+      border-radius: 20px;
+      padding: 2rem;
+      margin-bottom: 2rem;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+      text-align: center;
+    }
+
+    .header h1 {
+      font-size: 2.5rem;
+      font-weight: 700;
+      margin-bottom: 0.5rem;
+      background: linear-gradient(45deg, #667eea, #764ba2);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .header p {
+      color: #666;
+      font-size: 1.1rem;
+      margin-bottom: 1.5rem;
+    }
+
+    .action-buttons {
+      display: flex;
+      gap: 1rem;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+
+    .btn {
+      padding: 0.8rem 1.5rem;
       font-size: 1rem;
-      margin-right: 1rem;
+      border: none;
+      border-radius: 50px;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      font-weight: 600;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      position: relative;
+      overflow: hidden;
     }
-    #status { margin-top: 1rem; color: green; }
-    #results, #history { margin-top: 2rem; }
+
+    .btn-primary {
+      background: linear-gradient(45deg, #667eea, #764ba2);
+      color: white;
+    }
+
+    .btn-secondary {
+      background: rgba(255, 255, 255, 0.9);
+      color: #333;
+      border: 2px solid #e0e0e0;
+    }
+
+    .btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+    }
+
+    .btn:active {
+      transform: translateY(0);
+    }
+
+    .search-section {
+      background: rgba(255, 255, 255, 0.95);
+      backdrop-filter: blur(10px);
+      border-radius: 20px;
+      padding: 2rem;
+      margin-bottom: 2rem;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+    }
+
+    .search-section h2 {
+      margin-bottom: 1.5rem;
+      color: #333;
+      font-size: 1.5rem;
+    }
+
+    .search-container {
+      display: flex;
+      gap: 1rem;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+
+    .search-input {
+      flex: 1;
+      min-width: 300px;
+      padding: 1rem 1.5rem;
+      font-size: 1rem;
+      border: 2px solid #e0e0e0;
+      border-radius: 50px;
+      outline: none;
+      transition: all 0.3s ease;
+      background: rgba(255, 255, 255, 0.9);
+    }
+
+    .search-input:focus {
+      border-color: #667eea;
+      box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+    }
+
+    .status {
+      margin-top: 1rem;
+      padding: 1rem;
+      border-radius: 10px;
+      font-weight: 500;
+      text-align: center;
+      transition: all 0.3s ease;
+    }
+
+    .status.success {
+      background: rgba(46, 204, 113, 0.1);
+      color: #27ae60;
+      border: 1px solid rgba(46, 204, 113, 0.2);
+    }
+
+    .status.loading {
+      background: rgba(52, 152, 219, 0.1);
+      color: #3498db;
+      border: 1px solid rgba(52, 152, 219, 0.2);
+    }
+
+    .results-section, .history-section {
+      background: rgba(255, 255, 255, 0.95);
+      backdrop-filter: blur(10px);
+      border-radius: 20px;
+      padding: 2rem;
+      margin-bottom: 2rem;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+    }
+
+    .results-section h2, .history-section h2 {
+      margin-bottom: 1.5rem;
+      color: #333;
+      font-size: 1.5rem;
+    }
+
     .result, .history-entry {
+      background: rgba(255, 255, 255, 0.8);
+      border: 1px solid rgba(0, 0, 0, 0.1);
+      border-radius: 15px;
+      padding: 1.5rem;
       margin-bottom: 1rem;
-      padding: 0.5rem;
-      background: #f0f0f0;
+      transition: all 0.3s ease;
+      position: relative;
+      overflow: hidden;
     }
-    .file-path {
-      font-size: 0.9rem;
+
+    .result:hover, .history-entry:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 5px 20px rgba(0, 0, 0, 0.1);
+    }
+
+    .result-header {
+      display: flex;
+      justify-content: between;
+      align-items: center;
+      margin-bottom: 0.5rem;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+    }
+
+    .result-title {
+      font-weight: 600;
+      color: #667eea;
+      text-decoration: none;
+      font-size: 1.1rem;
+      cursor: pointer;
+      transition: color 0.3s ease;
+    }
+
+    .result-title:hover {
+      color: #764ba2;
+    }
+
+    .result-meta {
+      background: rgba(102, 126, 234, 0.1);
+      color: #667eea;
+      padding: 0.3rem 0.8rem;
+      border-radius: 20px;
+      font-size: 0.8rem;
+      font-weight: 500;
+    }
+
+    .result-text {
       color: #555;
+      line-height: 1.6;
+      margin-top: 1rem;
+    }
+
+    .history-header {
+      display: flex;
+      justify-content: between;
+      align-items: center;
+      margin-bottom: 1rem;
+      flex-wrap: wrap;
+    }
+
+    .history-folder {
+      font-weight: 600;
+      color: #333;
+      font-size: 1.1rem;
+    }
+
+    .history-timestamp {
+      color: #666;
+      font-size: 0.9rem;
+      background: rgba(0, 0, 0, 0.05);
+      padding: 0.3rem 0.8rem;
+      border-radius: 20px;
+    }
+
+    .file-list {
+      list-style: none;
+      margin-top: 1rem;
+    }
+
+    .file-item {
+      padding: 0.5rem 0;
+      color: #555;
+      border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+      transition: color 0.3s ease;
+    }
+
+    .file-item:hover {
+      color: #667eea;
+    }
+
+    .file-item:last-child {
+      border-bottom: none;
+    }
+
+    .empty-state {
+      text-align: center;
+      padding: 3rem;
+      color: #666;
+    }
+
+    .empty-state-icon {
+      font-size: 3rem;
+      margin-bottom: 1rem;
+    }
+
+    .loading-spinner {
+      display: inline-block;
+      width: 20px;
+      height: 20px;
+      border: 2px solid #f3f3f3;
+      border-top: 2px solid #667eea;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+      margin-right: 0.5rem;
+    }
+
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+
+    .fade-in {
+      animation: fadeIn 0.5s ease-in;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    @media (max-width: 768px) {
+      .container {
+        padding: 1rem;
+      }
+      
+      .header h1 {
+        font-size: 2rem;
+      }
+      
+      .search-container {
+        flex-direction: column;
+        align-items: stretch;
+      }
+      
+      .search-input {
+        min-width: auto;
+      }
+      
+      .action-buttons {
+        flex-direction: column;
+      }
     }
   </style>
 </head>
 <body>
+  <div class="container">
+    <div class="header">
+      <h1>📂 Smart Document Sorter</h1>
+      <p>Organize, search, and discover your documents with AI-powered intelligence</p>
+      <div class="action-buttons">
+        <button class="btn btn-primary" onclick="chooseFolder()">
+          <span>🗂</span> Select Folder
+        </button>
+        <button class="btn btn-secondary" onclick="loadHistory()">
+          <span>🕘</span> View History
+        </button>
+      </div>
+      <div id="status" class="status" style="display: none;"></div>
+    </div>
 
-  <h2>📂 Smart Document Sorter</h2>
-  <button onclick="chooseFolder()">🗂 Select Folder</button>
-  <button onclick="loadHistory()">🕘 View History</button>
-  <div id="status"></div>
+    <div class="search-section">
+      <h2>🔍 Search Your Documents</h2>
+      <div class="search-container">
+        <input type="text" id="searchInput" class="search-input" placeholder="Enter your query..." />
+        <button class="btn btn-primary" onclick="search()">
+          <span>🔍</span> Search
+        </button>
+      </div>
+    </div>
 
-  <h3>🔍 Search Your Documents</h3>
-  <input type="text" id="searchInput" placeholder="Enter your query..." />
-  <button onclick="search()">Search</button>
+    <div class="results-section">
+      <h2>📄 Search Results</h2>
+      <div id="results">
+        <div class="empty-state">
+          <div class="empty-state-icon">🔍</div>
+          <p>Enter a search query to find documents</p>
+        </div>
+      </div>
+    </div>
 
-  <div id="results"></div>
-
-  <h3>📚 Scan History</h3>
-  <div id="history"></div>
+    <div class="history-section">
+      <h2>📚 Scan History</h2>
+      <div id="history">
+        <div class="empty-state">
+          <div class="empty-state-icon">📭</div>
+          <p>No scan history yet. Select a folder to get started.</p>
+        </div>
+      </div>
+    </div>
+  </div>
 
   <script>
+    function showStatus(message, type = 'loading') {
+      const statusDiv = document.getElementById("status");
+      statusDiv.textContent = message;
+      statusDiv.className = `status ${type}`;
+      statusDiv.style.display = 'block';
+      
+      if (type === 'success') {
+        setTimeout(() => {
+          statusDiv.style.display = 'none';
+        }, 3000);
+      }
+    }
+
     function chooseFolder() {
-      document.getElementById("status").textContent = "🔄 Scanning...";
+      showStatus("🔄 Scanning documents...", "loading");
       pywebview.api.choose_directory().then(response => {
-        document.getElementById("status").textContent = response;
-        loadHistory(); // reload history after scanning
+        showStatus(response, "success");
+        loadHistory();
+      }).catch(error => {
+        showStatus("❌ Error selecting folder", "error");
       });
     }
+
     function openFile(path) {
       pywebview.api.open_file(path);
     }
-    
+
     function search() {
-      const query = document.getElementById("searchInput").value;
-      if (!query) return;
+      const query = document.getElementById("searchInput").value.trim();
+      if (!query) {
+        showStatus("⚠️ Please enter a search query", "error");
+        return;
+      }
 
-      document.getElementById("results").innerHTML = "🔄 Searching...";
+      const resultsContainer = document.getElementById("results");
+      resultsContainer.innerHTML = `
+        <div class="empty-state">
+          <div class="loading-spinner"></div>
+          <p>Searching through your documents...</p>
+        </div>
+      `;
+
       pywebview.api.search_for_documents(query).then(results => {
-        const container = document.getElementById("results");
-        container.innerHTML = "";
-
+        resultsContainer.innerHTML = "";
+        
         if (!results || results.length === 0) {
-          container.innerHTML = "❌ No results found.";
+          resultsContainer.innerHTML = `
+            <div class="empty-state">
+              <div class="empty-state-icon">❌</div>
+              <p>No results found for "${query}"</p>
+            </div>
+          `;
           return;
         }
 
         results.forEach(res => {
-          const div = document.createElement("div");
-          div.className = "result";
-
-          div.innerHTML = `
-            <strong>📄 <a href="#" onclick="openFile('${res.file_path}')">${res.file_path}</a></strong><br/>
-            <small>📍 Page: ${res.page_number} | 🔍 Score: ${res.score}</small>
-            <p>${res.text}</p>
+          const resultDiv = document.createElement("div");
+          resultDiv.className = "result fade-in";
+          
+          resultDiv.innerHTML = `
+            <div class="result-header">
+              <a href="#" class="result-title" onclick="openFile('${res.file_path}')">
+                📄 ${res.file_path.split('/').pop() || res.file_path}
+              </a>
+              <div class="result-meta">
+                📍 Page ${res.page_number} | 🎯 Score: ${res.score.toFixed(2)}
+              </div>
+            </div>
+            <div class="result-text">${res.text}</div>
           `;
-
-          container.appendChild(div);
+          
+          resultsContainer.appendChild(resultDiv);
         });
+      }).catch(error => {
+        resultsContainer.innerHTML = `
+          <div class="empty-state">
+            <div class="empty-state-icon">❌</div>
+            <p>Error searching documents</p>
+          </div>
+        `;
       });
     }
 
     function loadHistory() {
       const historyDiv = document.getElementById("history");
-      historyDiv.innerHTML = "🔄 Loading history...";
+      historyDiv.innerHTML = `
+        <div class="empty-state">
+          <div class="loading-spinner"></div>
+          <p>Loading scan history...</p>
+        </div>
+      `;
+
       pywebview.api.get_history().then(entries => {
+        historyDiv.innerHTML = "";
+        
         if (!entries || entries.length === 0) {
-          historyDiv.innerHTML = "📭 No scan history yet.";
+          historyDiv.innerHTML = `
+            <div class="empty-state">
+              <div class="empty-state-icon">📭</div>
+              <p>No scan history yet. Select a folder to get started.</p>
+            </div>
+          `;
           return;
         }
 
-        historyDiv.innerHTML = "";
         entries.forEach(entry => {
-          const div = document.createElement("div");
-          div.className = "history-entry";
-          div.innerHTML = `
-            <strong>📁 ${entry.folder}</strong><br/>
-            <small>🕒 Scanned at: ${new Date(entry.timestamp).toLocaleString()}</small>
-            <ul>
-              ${entry.files.map(file => `<li class="file-path">📄 ${file}</li>`).join("")}
+          const entryDiv = document.createElement("div");
+          entryDiv.className = "history-entry fade-in";
+          
+          const fileList = entry.files.map(file => 
+            `<li class="file-item">📄 ${file}</li>`
+          ).join("");
+          
+          entryDiv.innerHTML = `
+            <div class="history-header">
+              <div class="history-folder">📁 ${entry.folder}</div>
+              <div class="history-timestamp">
+                🕒 ${new Date(entry.timestamp).toLocaleString()}
+              </div>
+            </div>
+            <ul class="file-list">
+              ${fileList}
             </ul>
           `;
-          historyDiv.appendChild(div);
+          
+          historyDiv.appendChild(entryDiv);
         });
+      }).catch(error => {
+        historyDiv.innerHTML = `
+          <div class="empty-state">
+            <div class="empty-state-icon">❌</div>
+            <p>Error loading history</p>
+          </div>
+        `;
       });
     }
 
     // Auto-load history on startup
     window.onload = loadHistory;
-  </script>
 
+    // Add enter key support for search
+    document.getElementById("searchInput").addEventListener("keypress", function(event) {
+      if (event.key === "Enter") {
+        search();
+      }
+    });
+  </script>
 </body>
 </html>
 
